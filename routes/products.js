@@ -9,12 +9,14 @@ const { verifyToken, validationHandler } = require('../middleware')
 router.get('/products', 
     verifyToken,
     async (req, res) => {
-        await db.Product.find(function (err, result) {
-            if (err) return res.status(404).send(err)
-            else if (result.length<1) return res.status(200).send('Empty')
+        try {
+            const result = await db.Product.find();
 
-            res.status(200).send(result)
-        })
+            if (result.length<1) return res.status(200).send('Empty')
+            return res.status(200).send(result)
+        } catch (err) {
+            return res.status(500).send(err)
+        }
 })
 
 router.get('/products/:nama', 
@@ -22,12 +24,14 @@ router.get('/products/:nama',
     verifyToken,
     validationHandler,
     async (req, res) => {
-        await db.Product.find({ nama: req.params.nama}, function (err, result) {
-            if (err) return res.status(404).send(err)
-            else if (result.length<1) return res.status(200).send('Not Found')
+        try {
+            const result = await db.Product.find({ nama: req.params.nama})
 
-            res.status(200).send(result)
-        })
+            if (result.length<1) return res.status(200).send('Not Found')
+            return res.status(200).send(result)
+        } catch (err) {
+            return res.status(500).send(err)
+        }
 })
 
 router.post('/products', 
@@ -36,14 +40,16 @@ router.post('/products',
     verifyToken,
     validationHandler,
     async (req, res) => {
-        const count = await db.Product.countDocuments({ nama: req.body.nama });
-        if (count > 0) return res.status(200).send('Product Already Exist')
+        try {
+            const count = await db.Product.countDocuments({ nama: req.body.nama });
+            if (count > 0) return res.status(200).send('Product Already Exist')
 
-        var doc = new db.Product(req.body)
-        await doc.save(function (err, doc) {
-            if (err) return res.status(404).send(err)
-            res.status(201).send(doc)
-        });
+            let doc = new db.Product(req.body)
+            await doc.save();
+            return res.status(201).send(doc)
+        } catch (err) {
+            return res.status(500).send(err)
+        }
 })
 
 router.put('/products/:nama',
@@ -53,7 +59,7 @@ router.put('/products/:nama',
     validationHandler,
     async (req, res) => {
         try {
-            var productExist = await db.Product.findOne({ nama: req.params.nama})
+            let productExist = await db.Product.findOne({ nama: req.params.nama})
             if (!productExist) return res.status(200).send('Not Found')
 
             const count = await db.Product.countDocuments({ nama: req.body.nama });
@@ -63,9 +69,9 @@ router.put('/products/:nama',
             productExist.harga = req.body.harga
 
             await productExist.save()
-            res.status(201).send(productExist)
+            return res.status(201).send(productExist)
         } catch(err) {
-            return res.status(200).send(err)
+            return res.status(500).send(err)
         }
 })
 
@@ -74,15 +80,15 @@ router.delete('/products/:nama',
     verifyToken,
     validationHandler,
     async (req, res) => {
-    try {
-        var productExist = await db.Product.findOne({ nama: req.params.nama})
-        if (!productExist) return res.status(200).send('Not Found')
+        try {
+            let productExist = await db.Product.findOne({ nama: req.params.nama})
+            if (!productExist) return res.status(200).send('Not Found')
 
-        await db.Product.remove({ nama: req.params.nama })
-        res.status(200).send('delete success')
-    } catch (err) {
-        return res.status(200).send(err)
-    }
+            await db.Product.remove({ nama: req.params.nama })
+            return res.status(200).send('delete success')
+        } catch (err) {
+            return res.status(500).send(err)
+        }
 })
 
 module.exports = router

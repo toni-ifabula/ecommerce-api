@@ -9,12 +9,14 @@ const { verifyToken, validationHandler } = require('../middleware')
 router.get('/transactions', 
     verifyToken,
     async (req, res) => {
-        await db.Transaction.find(function (err, result) {
-            if (err) return res.status(404).send(err)
-            else if (result.length<1) return res.status(200).send('Empty')
-
-            res.status(200).send(result)
-        })
+        try {
+            const result = await db.Transaction.find()
+            
+            if (result.length<1) return res.status(200).send('Empty')
+            return res.status(200).send(result)
+        } catch (err) {
+            return res.status(500).send(err)
+        }
 })
 
 router.get('/transactions/:namaUser',
@@ -22,12 +24,14 @@ router.get('/transactions/:namaUser',
     verifyToken,
     validationHandler,
     async (req, res) => {
-        await db.Transaction.find({ nama: req.params.namaUser}, function (err, result) {
-            if (err) return res.status(404).send(err)
-            else if (result.length<1) return res.status(200).send('Not Found')
-
-            res.status(200).send(result)
-        })
+        try {
+            const result = await db.Transaction.find({ nama: req.params.namaUser})
+    
+            if (result.length<1) return res.status(200).send('Not Found')
+            return res.status(200).send(result)
+        } catch (err) {
+            return res.status(500).send(err)
+        }
 })
 
 router.post('/transactions', 
@@ -40,15 +44,15 @@ router.post('/transactions',
             const user = await db.User.findOne({ _id: req.body.idUser });
             if (!user) return res.status(200).send('User Not Found')
 
-            var productList = [];
+            let productList = [];
 
-            for(var i=0; i<req.body.idProducts.length; i++) {
+            for(let i=0; i<req.body.idProducts.length; i++) {
                 const prod = await db.Product.findOne({ _id: req.body.idProducts[i] });
                 if (!prod) return res.status(200).send('Product Not Found')
                 productList.push(prod)
             }
 
-            var data = {
+            let data = {
                 idUser: req.body.idUser,
                 email: user.email,
                 nama: user.nama,
@@ -56,11 +60,11 @@ router.post('/transactions',
                 products: productList
             }
 
-            var doc = new db.Transaction(data)
+            let doc = new db.Transaction(data)
             await doc.save();
-            res.status(201).send(data)
+            return res.status(201).send(data)
         } catch (err) {
-            return res.send(err)
+            return res.status(500).send(err)
         }
 })
 
@@ -69,15 +73,15 @@ router.delete('/transactions/:id',
     verifyToken,
     validationHandler,
     async (req, res) => {
-    try {
-        var transactionExist = await db.Transaction.findOne({ _id: req.params.id})
-        if (!transactionExist) return res.status(200).send('Not Found')
+        try {
+            const transactionExist = await db.Transaction.findOne({ _id: req.params.id})
+            if (!transactionExist) return res.status(200).send('Not Found')
 
-        await db.Transaction.remove({ _id: req.params.id })
-        res.status(200).send('delete success')
-    } catch (err) {
-        return res.status(200).send(err)
-    }
+            await db.Transaction.remove({ _id: req.params.id })
+            return res.status(200).send('delete success')
+        } catch (err) {
+            return res.status(500).send(err)
+        }
 })
 
 module.exports = router
